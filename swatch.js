@@ -1,4 +1,4 @@
-// generate and draw a series of color swatches tessellating the screen
+// tessellates the screen with color swatches
 
 
 function randInt(start=1, end=100) {
@@ -9,11 +9,11 @@ function randInt(start=1, end=100) {
 /**
   * parameters:
   *   numColors - number of colors to generate
-  *   spread in [0, 1] - how much of the color wheel to span
-  *   angle in [0, 1] - where to start on color wheel
+  *   spread in interval [0, 1] - how much of the color wheel to span
+  *   angle in interval [0, 1] - where to start on color wheel
   *
   * return:
-  *   array of values in [0, 1], representing angles on the color wheel
+  *   array of values in interval [0, 1], representing angles on the color wheel
   */
 function genHuesFromAngleSpread(numColors, spread, angle) {
     let deltaAngle = spread / numColors,
@@ -29,12 +29,12 @@ function genHuesFromAngleSpread(numColors, spread, angle) {
 
 /** 
   * parameters:
-  *   h in [0, 1] - hue 
-  *   s in [0, 1] - saturation
-  *   l in [0, 1] - lightness 
+  *   h in interval [0, 1] - hue 
+  *   s in interval [0, 1] - saturation
+  *   l in interval [0, 1] - lightness 
   *
   * return:
-  *   [r, g, b], r/g/b in [0, 255]
+  *   [r, g, b], r/g/b being integers between 0 and 255 inclusive
   */
 function hslToRgb(h, s, l){
     var r, g, b;
@@ -64,7 +64,7 @@ function hslToRgb(h, s, l){
 
 /**
   * parameters:
-  *   rgbArray like [r, g, b], r/g/b in [0, 255]
+  *   rgbArray like [r, g, b], r/g/b being integers between 0 and 255 inclusive
   *
   * return:
   *   rgb hex value in the form '#rrggbb'
@@ -76,35 +76,108 @@ function rgbArrayToHex(rgbArray) {
 
 /**
   * parameters:
-  *   colors = array of rgb hex values in the form '#rrggbb'
+  *   colors - array of rgb hex values in the form '#rrggbb'
   *
   * side effects:
   *   draw color swatches across window
   */
-function drawColorSwatches(ctx, colors, sqrsPerRow, sqrsPerCol, sqrWidth, sqrHeight) {
-    let x = 0,
-	y = 0,
-	tempAlpha = ctx.globalAlpha;
-    ctx.globalAlpha = 1;
-    for(var i=0; i<colors.length; ++i) {
-	ctx.fillStyle = colors[i];
-	ctx.fillRect(x,y,sqrWidth,sqrHeight);
-	if (i != 0 && i % sqrsPerRow == 0) {
-	    y += sqrHeight - 1;
-	    x = 0;
-	}
-	else {
-	    x += sqrWidth - 1;
-	}
-    }
-    ctx.globalAlpha = tempAlpha;
+function genColorSwatchDrawer(placeSqr, sqrWidth, sqrHeight) {
+    return function (ctx, sqr_i, color) {
+	let sqrPos = placeSqr(sqr_i),
+	    x = sqrPos[0] * sqrWidth,
+    	    y = sqrPos[1] * sqrHeight,
+    	    tempAlpha = ctx.globalAlpha;
+	ctx.globalAlpha = 1;
+	ctx.fillStyle = color;
+	ctx.fillRect(x, y, sqrWidth, sqrHeight);
+	ctx.globalAlpha = tempAlpha;
+    };
 }
 
 
-function coinFlip () { return randInt(0, 2); }
+/**
+  * parameters:
+  *   dividend - number to divide into
+  *   divisor - number to divide by
+  * 
+  * returns: 
+  *   [q, r] where q is the quotient and r is the remainder
+  *
+  */
+function quotient(dividend, divisor) {
+    return [ dividend % divisor, Math.floor(dividend / divisor) ];
+}
 
 
-function flatSquaresBG() {
+function genTriNumbers(screenWidth, screenHeight) {
+    let n = screenWidth + screenHeight - 1,
+	diff = 1,
+	lastTri = 0,
+	triNumbers = [];
+
+    for(let i = 0; i < n; ++i) {
+	triNumbers = triNumbers.concat(lastTri);
+	if(i < (screenHeight - 1) && i < (screenWidth - 1)) {
+	    diff += 1;
+	} else if (i >= (screenHeight - 1) && i >= (screenWidth - 1)) {
+	    diff -= 1;
+	}
+	lastTri += diff;
+    }
+
+    return triNumbers;
+}
+
+
+function diagGradient(screenWidth, screenHeight) {
+    let triNumbers = genTriNumbers(screenWidth, screenHeight),
+	getNextTriNumber = function(list, indx) {
+	    let l = list.length,
+		mid = Math.floor(l / 2);
+
+	    if (l == 1) {
+		let triNumberIndx = list[mid] == indx ?
+		    triNumbers.indexOf(list[mid])
+		    : triNumbers.indexOf(list[mid]) + 1;
+		return [
+		    triNumbers[triNumberIndx],
+		    triNumberIndx - screenHeight + 1 > 0 ? triNumberIndx - screenHeight + 1 : 0,
+		    Math.min(screenHeight - 1, triNumberIndx)
+		];
+	    } else {
+		if (list[mid] > indx) {
+		    return getNextTriNumber(list.slice(0, mid), indx);
+		} else if (list[mid] <= indx) {
+		    return getNextTriNumber(list.slice(mid, l), indx);
+		} 
+	    }
+	};
+
+    return function(i) {
+	let nextTriNumber = getNextTriNumber(triNumbers, i),
+	    diff = nextTriNumber[0] - i;
+	return [nextTriNumber[1] + diff, nextTriNumber[2] - diff];
+    };
+}
+
+
+function coinFlip() { return randInt(0, 2); }
+
+
+function coolDown(t, f) {
+    let locked = false;
+    let unlock = () => locked = false;
+
+    return function( ... args ) {
+	if (!locked) {
+	    locked = true;
+	    setTimeout(unlock, t);
+	    f( ... args );
+	}
+    };
+}
+
+var flatSquaresBG = coolDown(500, function (animationLength) {
     var c = document.getElementById('bg');
     var ctx = c.getContext('2d');
 
@@ -112,10 +185,10 @@ function flatSquaresBG() {
     c.width  = window.innerWidth;
 
     let numSquaresWide = 16,
-	sqrWidth = c.width / numSquaresWide + 1,
+	sqrWidth = Math.ceil(c.width / numSquaresWide + 1),
 	numSquaresTall = Math.floor(c.height / sqrWidth),
-	sqrHeight = sqrWidth + (c.height % sqrWidth) / numSquaresTall + 1,
-	totalNumSquares = (Math.floor(c.height * numSquaresWide / c.width) + 1) * numSquaresWide + 1,
+	sqrHeight = Math.ceil(sqrWidth + (c.height % sqrWidth) / numSquaresTall + 1),
+	totalNumSquares = (Math.floor(c.height / sqrHeight) + 1) * numSquaresWide,
 	colorWheelSpread = .4,
 	startColorAngle = Math.random(),
 	saturation = () => randInt(3000, 5000) / 10000,
@@ -125,18 +198,17 @@ function flatSquaresBG() {
 			.map(x => hslToRgb(x, saturation(), lightness()))
 			.map(rgbArrayToHex)
 		 );
-	
-    drawColorSwatches(ctx, colors, numSquaresWide, numSquaresTall, sqrWidth, sqrHeight);
-}
 
+    // swatchDrawer = genColorSwatchDrawer((i) => quotient(i, numSquaresWide), sqrWidth, sqrHeight);
+    swatchDrawer = genColorSwatchDrawer(
+	diagGradient(numSquaresWide, numSquaresTall),
+	sqrWidth,
+	sqrHeight
+    );
+    colors.forEach((c, i) => setTimeout(() => swatchDrawer(ctx, i, c), randInt(1,animationLength)));
+});
 
-flatSquaresBG();
-
-
-// prevent a bunch of redraws on swiping and lifting finger of touch screen
-document.addEventListener('touchmove', (e) => e.preventDefault());
-document.addEventListener('touchend', (e) => e.preventDefault());
-
-document.onclick = (e) => flatSquaresBG();
-document.ontouchstart = (e) => flatSquaresBG();
-window.onresize = (e) => flatSquaresBG();
+window.onload = 
+document.onclick = 
+document.ontouchstart = 
+window.onresize = (e) => flatSquaresBG(500);
