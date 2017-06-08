@@ -163,7 +163,6 @@ function genTriNumbers(screenWidth, screenHeight) {
 }
 
 
-function diagGradient(screenWidth, screenHeight) {
 /**
   * parameters:
   *   screenWidth - width of screen, in squares
@@ -174,12 +173,14 @@ function diagGradient(screenWidth, screenHeight) {
   *   of the corresponding square. Squares are placed from the top-left
   *   corner to the bottom-right.
   */
+function topLeftToBottomRightGradient(screenWidth, screenHeight) {
     let triNumbers = genTriNumbers(screenWidth, screenHeight),
 	getNextTriNumber = function(list, indx) {
 	    let l = list.length,
 		mid = Math.floor(l / 2);
 
 	    if (l == 1) {
+		// this function is doing too much at once, should refactor.
 		let triNumberIndx = list[mid] == indx ?
 		    triNumbers.indexOf(list[mid])
 		    : triNumbers.indexOf(list[mid]) + 1;
@@ -202,6 +203,30 @@ function diagGradient(screenWidth, screenHeight) {
 	    diff = nextTriNumber[0] - i;
 	return [nextTriNumber[1] + diff, nextTriNumber[2] - diff];
     };
+}
+
+
+function topRightToBottomLeftGradient (screenWidth, screenHeight) {
+    let placeOppositeSquare = topLeftToBottomRightGradient(screenWidth, screenHeight);
+    return (i) => {
+	let oppositeSquare = placeOppositeSquare(i);
+	return [
+	    screenWidth - oppositeSquare[0] - 1,
+	    oppositeSquare[1]
+	];
+    };
+}
+
+
+function getRandGradient() {
+    let gradients = [
+	topLeftToBottomRightGradient,
+	topRightToBottomLeftGradient,
+	topDownGradient
+    ];
+
+    let indx = randInt(0, gradients.length);
+    return gradients[indx];
 }
 
 
@@ -253,9 +278,8 @@ var flatSquaresBG = coolDown(500, function (animationLength) {
 			.map(rgbArrayToHex)
 		 );
 
-    // swatchDrawer = genColorSwatchDrawer((i) => quotient(i, numSquaresWide), sqrWidth, sqrHeight);
     swatchDrawer = genColorSwatchDrawer(
-	diagGradient(numSquaresWide, numSquaresTall),
+	getRandGradient()(numSquaresWide, numSquaresTall),
 	sqrWidth,
 	sqrHeight
     );
