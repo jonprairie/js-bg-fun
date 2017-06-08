@@ -76,10 +76,13 @@ function rgbArrayToHex(rgbArray) {
 
 /**
   * parameters:
-  *   colors - array of rgb hex values in the form '#rrggbb'
+  *   placeSqr - a function that maps an index to an [x, y] square placement
+  *   sqrWidth - width of squares in pixels
+  *   sqrHeight - height of squares in pixels
   *
-  * side effects:
-  *   draw color swatches across window
+  * return:
+  *   function that takes a context, index and color and draws a square on
+  *   the context using the given color
   */
 function genColorSwatchDrawer(placeSqr, sqrWidth, sqrHeight) {
     return function (ctx, sqr_i, color) {
@@ -102,13 +105,44 @@ function genColorSwatchDrawer(placeSqr, sqrWidth, sqrHeight) {
   * 
   * returns: 
   *   [q, r] where q is the quotient and r is the remainder
-  *
   */
 function quotient(dividend, divisor) {
     return [ dividend % divisor, Math.floor(dividend / divisor) ];
 }
 
 
+/**
+  * parameters:
+  *   screenWidth - width of screen, in squares
+  *   screenHeight - height of screen, in squares
+  * 
+  * return:
+  *   function that takes an index and returns the [x, y] placement 
+  *   of the corresponding square. Squares are placed left to right,
+  *   top to bottom.
+  */
+function topDownGradient(screenWidth, screenHeight) {
+    return (i) => quotient(i, screenWidth);
+}
+
+
+/**
+  * parameters:
+  *   screenWidth - width of screen, in squares
+  *   screenHeight - height of screen, in squares
+  *
+  * return:
+  *   a list of 'psuedo' triangle numbers. Triangle numbers start
+  *   at one. The difference between successive triangle numbers 
+  *   starts at one as well, then increments after each triangle number.
+  *   ex: 1, 3, 6, 10, 15 ...
+  *   because screens are generally rectangles, not triangles, we actually
+  *   need to generate 'pseudo' triangle numbers. The difference between
+  *   each successive pseudo triangle number also increments by one, but
+  *   remains constant once we reach an index greater than the smaller of
+  *   the screen width and screen height. The difference then starts to 
+  *   decrement once we reach an index greater than the larger of the two. 
+  */
 function genTriNumbers(screenWidth, screenHeight) {
     let n = screenWidth + screenHeight - 1,
 	diff = 1,
@@ -176,6 +210,7 @@ function coolDown(t, f) {
 	}
     };
 }
+
 
 var flatSquaresBG = coolDown(500, function (animationLength) {
     var c = document.getElementById('bg');
