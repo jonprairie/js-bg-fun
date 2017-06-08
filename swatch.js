@@ -219,7 +219,7 @@ var flatSquaresBG = coolDown(500, function (animationLength) {
     c.height = window.innerHeight;
     c.width  = window.innerWidth;
 
-    let numSquaresWide = 16,
+    let numSquaresWide = Math.floor((c.width > 800) ? c.width / 100 : c.width / 80),
 	sqrWidth = Math.ceil(c.width / numSquaresWide + 1),
 	numSquaresTall = Math.floor(c.height / sqrWidth),
 	sqrHeight = Math.ceil(sqrWidth + (c.height % sqrWidth) / numSquaresTall + 1),
