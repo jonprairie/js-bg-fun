@@ -164,6 +164,16 @@ function genTriNumbers(screenWidth, screenHeight) {
 
 
 function diagGradient(screenWidth, screenHeight) {
+/**
+  * parameters:
+  *   screenWidth - width of screen, in squares
+  *   screenHeight - height of screen, in squares
+  *
+  * return:
+  *   function that takes an index and returns the [x, y] placement
+  *   of the corresponding square. Squares are placed from the top-left
+  *   corner to the bottom-right.
+  */
     let triNumbers = genTriNumbers(screenWidth, screenHeight),
 	getNextTriNumber = function(list, indx) {
 	    let l = list.length,
