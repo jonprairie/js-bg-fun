@@ -198,6 +198,15 @@ function diagGradient(screenWidth, screenHeight) {
 function coinFlip() { return randInt(0, 2); }
 
 
+/**
+  * parameters:
+  *   t - timeout in milliseconds, used to determine how long the cool down period should be
+  *   f - function to wrap in a cool down period
+  *
+  * return:
+  *   function with same parameters and behavior as f, but once invoked cannot be invoked
+  *   again until the cool down period has elapsed.
+  */
 function coolDown(t, f) {
     let locked = false;
     let unlock = () => locked = false;
